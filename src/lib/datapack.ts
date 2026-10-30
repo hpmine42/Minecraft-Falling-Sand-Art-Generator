@@ -74,7 +74,8 @@ function resetLines(orientation: Orientation, size: number, mode: DatapackOption
 function cleanupKill(orientation: Orientation, size: number): string {
   const b = bounds(orientation, size);
   const dy = 2 * size;
-  return atAnchor(orientation, `positioned ${rel(b.minX)} ~1 ${rel(b.minZ)} run kill @e[type=minecraft:item,dx=${size},dy=${dy},dz=${size}]`);
+  // Delete dropped torch items only, inside the build + landing volume. Never world-wide.
+  return atAnchor(orientation, `positioned ${rel(b.minX)} ~1 ${rel(b.minZ)} run kill @e[type=minecraft:item,nbt={Item:{id:"minecraft:torch"}},dx=${size},dy=${dy},dz=${size}]`);
 }
 
 function verifyLines(commands: readonly PlacementCommand[]): string[] {
@@ -177,7 +178,7 @@ export function datapackFiles(grid: ToneGrid, options: DatapackOptions): Record<
     'scoreboard players set #fs_cleanup fs 300',
     'function fallingsand:water',
     'schedule function fallingsand:cleanup 10t',
-    'tellraw @a {"text":"Root torch gone. Collapsing; torch-item cleanup runs for 300 ticks.","color":"gold"}',
+    'tellraw @a {"text":"Root torch gone. Collapsing; dropped torch items are deleted inside the build volume every 10 ticks for 300 ticks.","color":"gold"}',
   ]));
 
   const waterDispatch = ['# Flood the landing layer only in the water floor mode.'];
@@ -185,7 +186,7 @@ export function datapackFiles(grid: ToneGrid, options: DatapackOptions): Record<
   add(fn('water', waterDispatch));
 
   add(fn('cleanup', [
-    '# Kill dropped items inside the build + landing volume only. Never the whole world.',
+    '# Kill dropped torch items inside the build + landing volume only. Never the whole world.',
     ...ORIENTATIONS.map((o) => cleanupKill(o, size)),
     'scoreboard players remove #fs_cleanup fs 10',
     'execute if score #fs_cleanup fs matches 1.. run schedule function fallingsand:cleanup 10t',
@@ -245,7 +246,7 @@ export function datapackFiles(grid: ToneGrid, options: DatapackOptions): Record<
     '',
     'The pack stores four look-direction variants so every setblock can use ~ coordinates.',
     'Exactly one variant is scheduled, so the world receives 2N setblock commands.',
-    'Cleanup kills only minecraft:item entities inside the build + landing volume for 300 ticks.',
+    'Cleanup kills only dropped torch items (minecraft:torch) inside the build + landing volume every 10 ticks for 300 ticks.',
   ];
   files['README.txt'] = encoder.encode(readme.join('\n') + '\n');
   return files;

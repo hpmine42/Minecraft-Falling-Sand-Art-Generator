@@ -38,10 +38,19 @@ describe('datapack', () => {
     expect(tick[0]).toContain('matches 2');
   });
 
-  it('cleanup is scoped to item entities inside the volume and disarms after 300 ticks', () => {
+  it('cleanup deletes only torch items inside the volume every 10 ticks and disarms after 300 ticks', () => {
     const cleanup = text('data/fallingsand/function/cleanup.mcfunction');
-    expect(cleanup).toContain('type=minecraft:item');
-    expect(cleanup).toContain('dx=48');
+    const killLines = cleanup.split('\n').filter((l) => l.includes(' run kill '));
+    expect(killLines).toHaveLength(4);
+    for (const line of killLines) {
+      expect(line).toContain('positioned');
+      expect(line).toContain('type=minecraft:item');
+      expect(line).toContain('nbt={Item:{id:"minecraft:torch"}}');
+      expect(line).toContain('dx=48');
+      expect(line).toContain('dy=96');
+      expect(line).toContain('dz=48');
+    }
+    expect(cleanup).not.toContain('kill @e[type=minecraft:item,dx');
     expect(cleanup).toContain('scoreboard players remove #fs_cleanup fs 10');
     expect(cleanup).toContain('matches ..0');
     expect(cleanup).not.toContain('@e[type=!player]');
