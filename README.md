@@ -99,7 +99,7 @@ The requested pacing is **48→8 ticks, 64→12, 96→24** (~1.2 s). Chunks are 
 
 ### Torch items and cleanup
 
-Breaking the structure pops ~N torches as item entities. After the root torch disappears, a cleanup window runs for **300 ticks** and kills `minecraft:item` entities inside the build + landing volume every **10 ticks**, then disarms. The scope is the volume, never the world: a chest next to the build is not touched.
+Breaking the structure pops ~N torches as item entities. After the root torch disappears, a cleanup window runs for **300 ticks** and kills dropped **torch items** inside the build + landing volume every **10 ticks**, then disarms. The selector is `@e[type=minecraft:item,nbt={Item:{id:"minecraft:torch"}},dx=…,dy=…,dz=…]`, executed from the footprint corner. Other item entities are left alone. The scope is the volume, never the world: a chest next to the build is not touched.
 
 ### Floor and water
 
@@ -121,7 +121,7 @@ data/fallingsand/function/
   floor.mcfunction, floor_<o>.mcfunction     optional landing floor
   water.mcfunction, water_<o>.mcfunction     landing water at collapse (water mode only)
   reset.mcfunction, reset_<o>.mcfunction     clears build + landing volume, disarms
-  cleanup.mcfunction                         kills item entities inside the volume
+  cleanup.mcfunction                         kills dropped torch items inside the volume
   verify.mcfunction, verify_<o>.mcfunction   counts torches, tellraw "N/N"
   tick.mcfunction                            one-block check: is the root torch gone?
   load.mcfunction                            scoreboards
@@ -148,7 +148,7 @@ README.txt                                   /reload → build → break the roo
 - Palette: 19 tones, deterministic mapping, every tone maps to a block that exists in the 26.3 registry.
 - Drawing model: pure line/brush/flood-fill/resize functions, independent clones, palette swatches map back to their own tone indices, and a drawn image produces a valid deterministic datapack ZIP.
 - 48×48 produces N blocks, N torches, and 2N setblock commands in the active orientation.
-- Datapack: modern `pack.mcmeta` (`min_format: [121, 0]`, `max_format: 121`), singular `function` / `tags/function` folders, one-block tick check, scoped cleanup, landing-only water, reset fills sliced under the 32768 block limit, deterministic ZIP round-trip.
+- Datapack: modern `pack.mcmeta` (`min_format: [121, 0]`, `max_format: 121`), singular `function` / `tags/function` folders, one-block tick check, scoped torch-item cleanup, landing-only water, reset fills sliced under the 32768 block limit, deterministic ZIP round-trip.
 - No-network guard: fails when a `fetch(` is injected into application source (verified by mutation), passes otherwise.
 - PWA: relative precache paths, relative manifest `start_url`/`scope`, Vite base matches the repository name.
 - `npm run typecheck`, `npm test -- --run`, and `npm run build` are green.
