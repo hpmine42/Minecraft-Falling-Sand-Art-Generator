@@ -7,9 +7,10 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 /**
  * Hand-rolled PWA plugin: precache every emitted asset with paths relative to
  * the service worker, so GitHub Pages sub-path deployment works offline. The
- * service worker never calls fetch(); it serves the precache and falls back to
- * the cached shell. New builds get a new cache version and are picked up on the
- * next visit.
+ * service worker never calls fetch(); it serves the precache, keeps the two
+ * previous caches during deployment transitions, and only falls back to the
+ * cached shell for navigation requests. New builds get a new cache version and
+ * are picked up on the next visit.
  */
 function pwa(): Plugin {
   return {
