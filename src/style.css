@@ -17,6 +17,7 @@ html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
 body { user-select: none; -webkit-user-select: none; overflow-x: hidden; }
 input, textarea { user-select: text; -webkit-user-select: text; }
 #app { min-height: 100vh; }
+#app:empty { min-height: 0; }
 button, select, input { font: inherit; }
 button, .btn {
   min-height: 44px;

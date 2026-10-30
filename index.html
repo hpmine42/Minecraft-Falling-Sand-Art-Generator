@@ -11,6 +11,47 @@
   </head>
   <body>
     <div id="app"></div>
+    <div id="boot-fallback" style="max-width:640px;margin:0 auto;padding:32px 20px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#e8eaed;background:#0d0f12;min-height:100vh;box-sizing:border-box;">
+      <h1 style="font-size:1.6rem;margin:0 0 12px;">Falling Sand Art</h1>
+      <p id="boot-message" style="color:#9aa1ac;line-height:1.5;margin:0 0 16px;">Loading the generator…</p>
+      <button id="boot-reset" type="button" hidden style="min-height:44px;padding:0 16px;border:1px solid #ffc061;border-radius:10px;background:#ffc061;color:#1a1408;font:inherit;font-weight:650;cursor:pointer;">Reset offline cache and reload</button>
+    </div>
+    <script>
+      (function () {
+        var fallback = document.getElementById('boot-fallback');
+        var message = document.getElementById('boot-message');
+        var reset = document.getElementById('boot-reset');
+        if (!fallback || !message || !reset) return;
+
+        function showReset() {
+          if (!fallback.isConnected) return;
+          message.textContent = 'The app could not start. An old offline cache may be mixed with a new deployment. Reset the offline cache and reload.';
+          reset.hidden = false;
+        }
+
+        function resetOfflineCache() {
+          reset.disabled = true;
+          reset.textContent = 'Resetting…';
+          var tasks = [];
+          if ('caches' in window) {
+            tasks.push(caches.keys().then(function (keys) {
+              return Promise.all(keys.filter(function (key) { return key.indexOf('fallingsand-') === 0; }).map(function (key) { return caches.delete(key); }));
+            }));
+          }
+          if ('serviceWorker' in navigator) {
+            tasks.push(navigator.serviceWorker.getRegistrations().then(function (registrations) {
+              return Promise.all(registrations.map(function (registration) { return registration.unregister(); }));
+            }));
+          }
+          Promise.all(tasks).then(function () { location.reload(); }, function () { location.reload(); });
+        }
+
+        reset.addEventListener('click', resetOfflineCache);
+        window.addEventListener('error', showReset, true);
+        window.addEventListener('unhandledrejection', showReset);
+        window.addEventListener('load', function () { setTimeout(showReset, 2500); });
+      })();
+    </script>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

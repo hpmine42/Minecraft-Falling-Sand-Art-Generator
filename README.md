@@ -6,7 +6,7 @@ Turn a picture into a Minecraft Java Edition build that collapses into flat pixe
 
 Live site: <https://hpmine42.github.io/Minecraft-Falling-Sand-Art-Generator/>
 
-Everything runs in the browser. No upload, no account, no server, no analytics, no CDN fonts. After the first visit the installable PWA works offline.
+Everything runs in the browser. No upload, no account, no server, no analytics, no CDN fonts. After the first visit the installable PWA works offline. If a deployment ever leaves the screen dark, the page shows a boot fallback with a **Reset offline cache and reload** button instead of failing silently.
 
 ![Sample input photo](docs/sample-photo.jpg)
 ![Generated 48×48 mosaic](docs/sample-mosaic-preview.png)
@@ -150,8 +150,9 @@ README.txt                                   /reload → build → break the roo
 - 48×48 produces N blocks, N torches, and 2N setblock commands in the active orientation.
 - Datapack: modern `pack.mcmeta` (`min_format: [121, 0]`, `max_format: 121`), singular `function` / `tags/function` folders, one-block tick check, scoped torch-item cleanup, landing-only water, reset fills sliced under the 32768 block limit, deterministic ZIP round-trip.
 - No-network guard: fails when a `fetch(` is injected into application source (verified by mutation), passes otherwise.
-- PWA: relative precache paths, relative manifest `start_url`/`scope`, Vite base matches the repository name.
-- `npm run typecheck`, `npm test -- --run`, and `npm run build` are green.
+- PWA: relative precache paths, relative manifest `start_url`/`scope`, Vite base matches the repository name. The service worker keeps the two previous caches during deployment transitions, serves the cached shell only for navigation, and answers missing assets with a 404 instead of HTML.
+- Boot fallback: a visible fallback outside the Vue mount point offers an offline-cache reset if the app cannot start; it is removed only after a successful mount.
+- `npm run typecheck`, `npm test -- --run` (**72 tests**), and `npm run build` are green.
 
 **Not verified in game:** the actual cascade, torch support beyond the mechanism stated in the brief, water hardening, entity-lag behaviour, and the in-game appearance. No in-game screenshot is claimed.
 
@@ -170,6 +171,8 @@ npm run build      # production build + service worker
 Tech: Vite + Vue 3 + TypeScript (strict), no UI library. The pipeline is pure and testable in Node: `image → tone index grid → cell heights → command list → zip`. ZIP is written with [`fflate`](https://github.com/101arrowz/fflate): tiny, dependency-free, and its synchronous `zipSync` is ample for the small text payloads; keeping the whole ZIP in memory is simpler than streaming and stays well under a MB.
 
 GitHub Pages: `base: '/Minecraft-Falling-Sand-Art-Generator/'` in `vite.config.ts`; the service worker precache paths are relative. CI (`.github/workflows/ci.yml`) typechecks, tests, builds, and deploys to Pages on `main`.
+
+If an older installed PWA still shows a dark screen after a deployment, use the visible **Reset offline cache and reload** button, or hard-reload the page. The reset clears only `fallingsand-*` caches and unregisters the service worker, then reloads from the network.
 
 ## Privacy
 
