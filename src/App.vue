@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef } from 'vue';
 import CropEditor from './components/CropEditor.vue';
+import DrawingEditor from './components/DrawingEditor.vue';
 import MosaicPreview from './components/MosaicPreview.vue';
 import StaircasePreview from './components/StaircasePreview.vue';
 import { centerCrop, imageToTones } from './lib/image';
@@ -12,8 +13,10 @@ interface InstallPromptEvent extends Event {
   prompt: () => Promise<void>;
 }
 
+const mode = ref<'upload' | 'draw'>('upload');
 const image = shallowRef<ImageLike | null>(null);
 const source = shallowRef<HTMLCanvasElement | null>(null);
+const drawingImage = shallowRef<ImageLike | null>(null);
 const crop = ref<CropRect>({ x: 0, y: 0, size: 1 });
 const size = ref<Size>(48);
 const corner = ref<Corner>('near-left');
@@ -37,9 +40,16 @@ if (typeof window !== 'undefined') {
   });
 }
 
+const activeImage = computed<ImageLike | null>(() => (mode.value === 'draw' ? drawingImage.value : image.value));
+const activeCrop = computed<CropRect>(() => {
+  if (mode.value === 'draw' && drawingImage.value) {
+    return centerCrop(drawingImage.value.width, drawingImage.value.height);
+  }
+  return crop.value;
+});
 const grid = computed<ToneGrid | null>(() => {
-  if (!image.value) return null;
-  return imageToTones(image.value, crop.value, size.value, dither.value);
+  if (!activeImage.value) return null;
+  return imageToTones(activeImage.value, activeCrop.value, size.value, dither.value);
 });
 const height = computed(() => checkHeight(size.value, groundY.value));
 const warning = computed(() => sizeWarning(size.value));
@@ -68,6 +78,7 @@ async function loadFile(file: File): Promise<void> {
     image.value = { width, height: heightPx, data: data.data };
     source.value = canvas;
     crop.value = centerCrop(width, heightPx);
+    mode.value = 'upload';
   } catch {
     status.value = 'Could not read that image. Try a PNG, JPEG, WebP, or GIF.';
   } finally {
@@ -139,25 +150,32 @@ async function install(): Promise<void> {
     </header>
 
     <section class="panel">
-      <h2>1 · Choose a picture</h2>
-      <div
-        class="dropzone"
-        :class="{ over: dragOver }"
-        role="button"
-        tabindex="0"
-        aria-label="Choose or drop an image"
-        @click="fileInput?.click()"
-        @keydown.enter.prevent="fileInput?.click()"
-        @keydown.space.prevent="fileInput?.click()"
-        @dragover.prevent="dragOver = true"
-        @dragleave.prevent="dragOver = false"
-        @drop.prevent="onDrop"
-      >
-        <p v-if="!image">Drag &amp; drop a picture here, or tap to choose from your camera roll.</p>
-        <p v-else>Picture loaded. Adjust the square crop below, or drop another picture to replace it.</p>
-        <input ref="fileInput" type="file" accept="image/*" class="visually-hidden" @change="onPick" />
+      <h2>1 · Choose or draw a picture</h2>
+      <div class="mode-toggle" role="tablist" aria-label="Picture source">
+        <button type="button" role="tab" :class="{ active: mode === 'upload' }" :aria-selected="mode === 'upload'" @click="mode = 'upload'">Upload a picture</button>
+        <button type="button" role="tab" :class="{ active: mode === 'draw' }" :aria-selected="mode === 'draw'" @click="mode = 'draw'">Draw your own</button>
       </div>
-      <CropEditor v-if="image && source" v-model:crop="crop" :image="image" :source="source" />
+      <div v-show="mode === 'upload'">
+        <div
+          class="dropzone"
+          :class="{ over: dragOver }"
+          role="button"
+          tabindex="0"
+          aria-label="Choose or drop an image"
+          @click="fileInput?.click()"
+          @keydown.enter.prevent="fileInput?.click()"
+          @keydown.space.prevent="fileInput?.click()"
+          @dragover.prevent="dragOver = true"
+          @dragleave.prevent="dragOver = false"
+          @drop.prevent="onDrop"
+        >
+          <p v-if="!image">Drag &amp; drop a picture here, or tap to choose from your camera roll.</p>
+          <p v-else>Picture loaded. Adjust the square crop below, or drop another picture to replace it.</p>
+          <input ref="fileInput" type="file" accept="image/*" class="visually-hidden" @change="onPick" />
+        </div>
+        <CropEditor v-if="image && source" v-model:crop="crop" :image="image" :source="source" />
+      </div>
+      <DrawingEditor v-show="mode === 'draw'" :size="size" @change="drawingImage = $event" />
     </section>
 
     <section class="panel">
@@ -255,6 +273,8 @@ async function install(): Promise<void> {
 .badges { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .badge { font-size: 0.75rem; border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; color: var(--muted); }
 .panel { background: var(--plate); border: 1px solid var(--line); border-radius: 16px; padding: 18px; }
+.mode-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+.mode-toggle button.active { border-color: var(--text); color: var(--text); }
 .dropzone {
   border: 1px dashed var(--line);
   border-radius: 12px;

@@ -15,13 +15,19 @@ Everything runs in the browser. No upload, no account, no server, no analytics, 
 
 ## Using the website
 
-1. Drop a picture or choose one from your camera roll. Adjust the square crop.
+1. Choose a picture source:
+   - **Upload a picture**: drop a file or choose one from your camera roll, then adjust the square crop.
+   - **Draw your own**: paint directly on a square pixel canvas with brush, eraser, fill, undo/redo, clear, brush size, the 19 Minecraft tones, or a custom color.
 2. Pick **48×48** (default), **64×64**, or **96×96**. Every pixel is filled.
 3. Set the ground Y (`G`), start corner, floor mode, and target version.
 4. Check the height arithmetic and the entity-count warning.
 5. Download the ZIP. The page shows a three-line instruction and a single count line (`2,304 blocks · 2,304 torches`).
 
 The two previews show the mosaic from above and a tilted staircase, so nobody is surprised that the build is not flat in the air.
+
+### Drawing mode
+
+The drawing canvas is square and matches the selected output size. Changing the size resamples the drawing with nearest-neighbour so hard pixel-art edges stay hard. The eraser paints white, because every output cell is filled. Drawings are exported as RGBA pixels and run through the same area-average + OKLab mapping as an uploaded photo, so a palette swatch maps back to its own Minecraft tone. Upload and drawing state are kept separately; switching tabs does not discard either.
 
 ## In game
 
@@ -140,6 +146,7 @@ README.txt                                   /reload → build → break the roo
 - No gravity block is placed before its torch; every wall torch faces away from an earlier parent block at the correct relative position (all sizes, all four orientations).
 - Height validator: 128×128 at Y=64 rejected with the real numbers; 96×96 accepted; exact limit 319 accepted, 320 rejected.
 - Palette: 19 tones, deterministic mapping, every tone maps to a block that exists in the 26.3 registry.
+- Drawing model: pure line/brush/flood-fill/resize functions, independent clones, palette swatches map back to their own tone indices, and a drawn image produces a valid deterministic datapack ZIP.
 - 48×48 produces N blocks, N torches, and 2N setblock commands in the active orientation.
 - Datapack: modern `pack.mcmeta` (`min_format: [121, 0]`, `max_format: 121`), singular `function` / `tags/function` folders, one-block tick check, scoped cleanup, landing-only water, reset fills sliced under the 32768 block limit, deterministic ZIP round-trip.
 - No-network guard: fails when a `fetch(` is injected into application source (verified by mutation), passes otherwise.
